@@ -1,0 +1,1591 @@
+openapi: 3.0.1
+info:
+  title: g2pay.io API
+  description: |
+    Payment API
+  contact:
+    name: 'Support'
+    email: support@g2pay.io
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  version: ''
+servers:
+  - url: https://engine-sandbox.g2pay.io
+    description: Sandbox
+  - url: https://engine.g2pay.io
+    description: Production
+tags:
+  - name: Payment
+    description: Merchant Payments API
+  - name: Subscription
+    description: Recurring Subscription API
+  - name: Webhooks
+    description: |
+      In order to receive webhooks from our system you need to specify 'Webhook Url' in shop settings or provide 'webhookUrl' parameter in createPayment request. The request parameter takes precedence over the parameter specified in shop settings.<br/><br/>
+      To ensure that webhooks come from our system, you can generate a Signing Key in your shop settings. If the Signing Key is specified, webhooks from our system will include 'Signature' header with HMAC-SHA256 hash generated from JSON body and Signing Key.<br/>
+      <SchemaDefinition schemaRef="#/components/schemas/Result" />
+  - name: Sandbox
+    description: |
+      For a successful deposit in the sandbox environment, the amount should be less than 10000000. For test withdrawals and refunds, the limit is 10000.
+      ### Test cards
+      | Card Number         | Result                                                         |
+      |---------------------|----------------------------------------------------------------|
+      | 4000 0000 0000 0002 | 3D-Secure enrolled, successful authorization                   |
+      | 4242 4242 4242 4242 | 3D-Secure enrolled, declined authorization                     |
+      | 4000 0000 0000 0408 | Not enrolled for 3D-Secure, successful authorization           |
+      | 4000 0000 0000 0416 | Not enrolled for 3D-Secure, declined authorization             |
+  - name: Error Codes
+    description: |
+      | Code | Description                                                                   |
+      |------|-------------------------------------------------------------------------------|
+      | 1.00 | Illegal Workflow State                                                        |
+      | 1.01 | Not Found                                                                     |
+      | 1.02 | Communication Problem                                                         |
+      | 1.03 | Internal Server Error                                                         |
+      | 1.04 | Cancelled by Timeout                                                          |
+      | 1.05 | Terminal not Found                                                            |
+      | 1.06 | Recurring Token not Found                                                     |
+      | 1.07 | Payer Unaccepted                                                              |
+      | 1.08 | Invalid Amount                                                                |
+      | 1.09 | Invalid Currency                                                              |
+      | 1.10 | Insufficient Balance                                                          |
+      | 2.00 | Cancelled by Customer                                                         |
+      | 3.00 | Declined by Acquirer                                                          |
+      | 3.01 | Declined by Acquirer: Anti-fraud                                              |
+      | 3.02 | Declined by Acquirer: Request Validation                                      |
+      | 3.03 | Acquirer Malfunction                                                          |
+      | 3.04 | Acquirer Timeout                                                              |
+      | 3.05 | Acquirer Limits Reached                                                       |
+      | 3.06 | Declined by Acquirer: Card Scheme                                             |
+      | 3.07 | Declined by Acquirer: Card Data                                               |
+      | 3.08 | Declined by Acquirer: Business Rules                                          |
+      | 3.09 | Not Fully 3DS                                                                 |
+      | 3.10 | Unknown Error Code                                                            |
+      | 3.11 | Payer cannot pay                                                              |
+      | 3.12 | Invalid ID Document                                                           |
+      | 3.13 | ID Document Restrictions                                                      |
+      | 3.14 | Declined Due to Age Requirements                                              |
+      | 3.15 | ID Document Under Temporary Restrictions                                      |
+      | 3.16 | Duplicate Payment                                                             |
+      | 4.00 | Declined by Issuer                                                            |
+      | 4.01 | Insufficient Funds                                                            |
+      | 4.02 | Do Not Honor                                                                  |
+      | 4.03 | Declined by Issuer: Invalid Card Number                                       |
+      | 4.04 | Declined by Issuer: Expired Card                                              |
+      | 4.05 | Issuer Limits Reached                                                         |
+      | 4.06 | Card Lost or Stolen                                                           |
+      | 4.07 | Invalid Security Code                                                         |
+      | 4.08 | Declined by Issuer: Business Rules                                            |
+      | 5.00 | Declined by 3DS                                                               |
+      | 5.01 | 3DS Timeout                                                                   |
+      | 6.00 | Declined by Internal Anti-fraud                                               |
+      | 6.01 | Card PAN Blacklisted                                                          |
+      | 6.02 | Customer Email Blacklisted                                                    |
+      | 6.03 | Card Issuing Country Restricted                                               |
+      | 6.04 | IP Country Restricted                                                         |
+      | 6.05 | Restricted Currency                                                           |
+      | 6.06 | Invalid Amount                                                                |
+      | 6.07 | IP Country Must Be Equal to Billing Country                                   |
+      | 6.08 | IP Country Must Be Equal to Card Issuing Country                              |
+      | 6.09 | Billing Country Must Be Equal to Card Issuing Country                         |
+      | 6.10 | Payment Created Within Closed Period of Day                                   |
+      | 6.11 | Card PAN not Whitelisted                                                      |
+      | 6.12 | Cardholder name is invalid                                                    |
+      | 6.13 | The same card is used by different customers                                  |
+      | 6.14 | Customer Phone Blacklisted                                                    |
+      | 6.15 | Card Brand not supported                                                      |
+      | 6.21 | Limit exceeded: Number of completed deposits                                  |
+      | 6.22 | Limit exceeded: Number of completed deposits for card                         |
+      | 6.23 | Limit exceeded: Number of declined deposits for card                          |
+      | 6.24 | Limit exceeded: Number of cards for IP address                                |
+      | 6.25 | Limit exceeded: Number of IP addresses for card                               |
+      | 6.26 | Limit exceeded: IP country does not match card country                        |
+      | 6.27 | Limit exceeded: Same amount and currency for card                             |
+      | 6.28 | Limit exceeded: Amount of deposits in specified currency                      |
+      | 6.29 | Limit exceeded: Amount of deposits for card and currency                      |
+      | 6.30 | Limit exceeded: Amount of deposits in base currency                           |
+      | 6.31 | Limit exceeded: Amount of deposits for card in base currency                  |
+      | 6.32 | Limit exceeded: Number of IP countries for card                               |
+      | 6.33 | Limit exceeded: Amount of deposits for customer in base currency              |
+      | 6.34 | Limit exceeded: Withdrawal amount for customer in base currency               |
+      | 6.35 | Billing Country Restricted                                                    |
+      | 6.36 | Customer Citizenship Country Restricted                                       |
+      | 6.37 | Limit exceeded: Number of withdrawals                                         |
+      | 6.38 | Limit exceeded: Amount of withdrawals in specified currency                   |
+      | 6.39 | Card BIN Blacklisted                                                          |
+      | 6.40 | UPI VPA Blacklisted                                                           |
+      | 6.41 | ID Document Blacklisted                                                       |
+      | 7.00 | Declined by External Anti-fraud                                               |
+      | 7.01 | External Anti-fraud Communication Problem                                     |
+paths:
+  /api/v1/payments:
+    get:
+      tags:
+        - Payment
+      description: Get a list of payments sorted by creation date (most recent first)
+      operationId: getPayments
+      parameters:
+        - name: offset
+          in: query
+          description: The number of items to skip before starting to collect the result set. Default is 0.
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 1000000
+        - name: limit
+          in: query
+          description: The numbers of items to return. Default is 50.
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 1000
+        - name: created.gte
+          in: query
+          description: If passed, return only payments created at or after the specified time
+          required: false
+          schema:
+            type: string
+            format: ISO 8601 (YYYY-MM-DD'T'HH24:MI:SS)
+            example: '2021-10-13T10:26:18'
+        - name: created.lt
+          in: query
+          description: If passed, return only payments created strictly before the specified time
+          required: false
+          schema:
+            type: string
+            format: ISO 8601 (YYYY-MM-DD'T'HH24:MI:SS)
+            example: '2021-10-13T10:39:34'
+        - name: updated.gte
+          in: query
+          description: If passed, return only payments updated at or after the specified time
+          required: false
+          schema:
+            type: string
+            format: ISO 8601 (YYYY-MM-DD'T'HH24:MI:SS)
+            example: '2021-10-13T10:26:18'
+        - name: updated.lt
+          in: query
+          description: If passed, return only payments updated strictly before the specified time
+          required: false
+          schema:
+            type: string
+            format: ISO 8601 (YYYY-MM-DD'T'HH24:MI:SS)
+            example: '2021-10-13T10:39:34'
+        - name: referenceId.eq
+          in: query
+          description: If passed, return only payments with the requested referenceId
+          required: false
+          schema:
+            type: string
+            example: 'order-12345'
+      responses:
+        200:
+          description: Payment List Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentListResponse'
+        401:
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedError'
+        400:
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+        - bearerAuthentication: [ ]
+    post:
+      tags:
+        - Payment
+      description: Payment request, used for DEPOSITS, WITHDRAWALS and REFUNDS
+      operationId: createPayment
+      requestBody:
+        description: Payment Request - Request to initiate a payment
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentRequest'
+        required: true
+      responses:
+        200:
+          description: Payment response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentResponse'
+        400:
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        401:
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedError'
+      security:
+        - bearerAuthentication: [ ]
+      x-codegen-request-body-name: body
+  /api/v1/payments/{id}:
+    get:
+      tags:
+        - Payment
+      description: Find Payment by Id
+      operationId: getPayment
+      parameters:
+        - name: id
+          in: path
+          description: Payment Id
+          required: true
+          schema:
+            pattern: /[a-zA-Z0-9]{32}/
+            type: string
+      responses:
+        200:
+          description: Payment Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentResponse'
+        401:
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedError'
+        404:
+          description: Payment not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
+      security:
+        - bearerAuthentication: [ ]
+      x-codegen-request-body-name: body
+  /api/v1/payments/{id}/operations:
+    get:
+      tags:
+        - Payment
+      description: Get a list of operations performed during payment processing sorted by time (most recent first)
+      operationId: getOperations
+      parameters:
+        - name: id
+          in: path
+          description: Payment Id
+          required: true
+          schema:
+            pattern: /[a-zA-Z0-9]{32}/
+            type: string
+      responses:
+        200:
+          description: Operation List Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OperationListResponse'
+        401:
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedError'
+        404:
+          description: Payment not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
+      security:
+        - bearerAuthentication: [ ]
+      x-codegen-request-body-name: body
+  /api/v1/payments/{id}/capture:
+    post:
+      tags:
+        - Payment
+      description: Capture a Pre-Authorized payment fully or partially. Only a payment in AUTHORIZED state can be captured.
+      operationId: capturePayment
+      parameters:
+        - name: id
+          in: path
+          description: Payment Id
+          required: true
+          schema:
+            pattern: /[a-zA-Z0-9]{32}/
+            type: string
+      requestBody:
+        description: Capture Request - Request to capture a Pre-Authorized payment
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CaptureRequest'
+        required: false
+      responses:
+        200:
+          description: Payment response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentResponse'
+        400:
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        401:
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedError'
+      security:
+        - bearerAuthentication: [ ]
+      x-codegen-request-body-name: body
+  /api/v1/payments/{id}/void:
+    post:
+      tags:
+        - Payment
+      description: Void a Pre-Authorized payment. Only a payment in AUTHORIZED state can be voided. The payment will be transferred to CANCELLED state and will no longer be available for capturing.
+      operationId: voidPayment
+      parameters:
+        - name: id
+          in: path
+          description: Payment Id
+          required: true
+          schema:
+            pattern: /[a-zA-Z0-9]{32}/
+            type: string
+      responses:
+        200:
+          description: Payment response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentResponse'
+        400:
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        401:
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedError'
+      security:
+        - bearerAuthentication: [ ]
+      x-codegen-request-body-name: body
+  /api/v1/subscriptions/{id}:
+    get:
+      tags:
+        - Subscription
+      description: Find Subscription by Id
+      operationId: getSubscription
+      parameters:
+        - name: id
+          in: path
+          description: Subscription Id
+          required: true
+          schema:
+            pattern: /[a-zA-Z0-9]{32}/
+            type: string
+      responses:
+        200:
+          description: Subscription Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscriptionResponse'
+        401:
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedError'
+        404:
+          description: Subscription not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
+      security:
+        - bearerAuthentication: [ ]
+      x-codegen-request-body-name: body
+    patch:
+      tags:
+        - Subscription
+      description: Patch Subscription
+      operationId: patchSubscription
+      parameters:
+        - name: id
+          in: path
+          description: Subscription Id
+          required: true
+          schema:
+            pattern: /[a-zA-Z0-9]{32}/
+            type: string
+      requestBody:
+        description: Subscription patch request
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubscriptionPatchRequest'
+        required: true
+      responses:
+        200:
+          description: Subscription Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscriptionResponse'
+        401:
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedError'
+        404:
+          description: Subscription not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
+      security:
+        - bearerAuthentication: [ ]
+      x-codegen-request-body-name: body
+  /api/v1/balances:
+    get:
+      tags:
+        - Balances
+      description: Get a list of funds available for withdrawal by currency (see "Check Withdrawal Balance" in shop settings)
+      operationId: getBalances
+      responses:
+        200:
+          description: List of balances for the shop that was authenticated in the request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BalanceListResponse'
+        401:
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedError'
+      security:
+        - bearerAuthentication: [ ]
+components:
+  schemas:
+    PaymentMethodDetails:
+      type: object
+      properties:
+        customerAccountNumber:
+          maxLength: 256
+          type: string
+          description: Customer account Id in external system or masked card PAN
+          example: 400000***0002
+        cardToken:
+          maxLength: 32
+          type: string
+          description: Card token which can be used instead of full card number (for BASIC_CARD payment method only)
+          example: '3529d42227424875af8722cbf54d7073'
+        cardholderName:
+          maxLength: 128
+          type: string
+          description: Cardholder name (for BASIC_CARD payment method only)
+          example: John Doe
+        cardExpiryMonth:
+          minLength: 2
+          maxLength: 2
+          type: string
+          description: Card expiration month (for BASIC_CARD payment method only)
+          example: '01'
+        cardExpiryYear:
+          minLength: 4
+          maxLength: 4
+          type: string
+          description: Card expiration year (for BASIC_CARD payment method only)
+          example: '2023'
+        cardIssuingCountryCode:
+          minLength: 2
+          maxLength: 2
+          type: string
+          description: Card issuing country code (for BASIC_CARD payment method only)
+          example: 'CY'
+    BillingAddress:
+      type: object
+      properties:
+        addressLine1:
+          maxLength: 50
+          type: string
+          description: Line 1 of the address (e.g., Number, street, etc)
+          example: 7, Sunny street
+        addressLine2:
+          maxLength: 50
+          type: string
+          description: Line 2 of the address (e.g., Suite, apt)
+          example: Office 3
+        city:
+          maxLength: 50
+          type: string
+          description: City name
+          example: Limassol
+        countryCode:
+          maxLength: 2
+          minLength: 2
+          pattern: '[A-Z]{2}'
+          type: string
+          description: 2-character IS0-3166-1 country code
+          example: CY
+        postalCode:
+          maxLength: 12
+          type: string
+          description: Postal code
+          example: '4141'
+        state:
+          maxLength: 40
+          type: string
+          description: State code
+          example: CA
+      description: Customer's billing address
+    Card:
+      type: object
+      properties:
+        cardNumber:
+          maxLength: 23
+          type: string
+          description: Card primary account number (PAN). All non-numeric characters will be ignored.
+          example: '4000 0000 0000 0002'
+        cardToken:
+          maxLength: 32
+          type: string
+          description: Card token which can be used instead of full card number.
+          example: '3529d42227424875af8722cbf54d7073'
+        cardholderName:
+          maxLength: 128
+          type: string
+          description: Cardholder's name printed on the card
+          example: John Smith
+        cardSecurityCode:
+          minLength: 3
+          maxLength: 4
+          type: string
+          description: Card security code (CVV2 / CVC2 / CAV2)
+          example: '010'
+        expiryMonth:
+          minLength: 2
+          maxLength: 2
+          type: string
+          description: Card expiration month, 2 digits
+          example: '01'
+        expiryYear:
+          minLength: 4
+          maxLength: 4
+          type: string
+          description: Card expiration year, 4 digits
+          example: '2030'
+      description: You must be PCI DSS compliant to collect card data on your side. If you are not certified, do not add this field to your request and we will collect the data on our page.
+    Customer:
+      type: object
+      properties:
+        referenceId:
+          maxLength: 128
+          type: string
+          description: Id of the customer assigned by Merchant
+          example: customer_123
+        citizenshipCountryCode:
+          maxLength: 2
+          minLength: 2
+          type: string
+          description: Customer country of citizenship
+          example: AU
+        firstName:
+          maxLength: 128
+          type: string
+          example: John
+        lastName:
+          maxLength: 128
+          type: string
+          example: Smith
+        dateOfBirth:
+          maxLength: 10
+          minLength: 10
+          type: string
+          format: ISO 8601 (YYYY-MM-DD)
+          example: '2001-12-03'
+        email:
+          maxLength: 256
+          type: string
+          description: Email address of the customer
+          format: email
+          example: my@email.com
+        phone:
+          maxLength: 18
+          type: string
+          description: International phone number of the customer, without the '+'. Use a space as a separator between the dialing country code and local phone number.
+          example: 357 123123123
+        locale:
+          maxLength: 2
+          minLength: 2
+          type: string
+          description: Customer preferred display language
+          example: ru
+        accountNumber:
+          maxLength: 256
+          type: string
+          description: Customer account number in the provider's system. Used for some types of withdrawals.
+        accountName:
+          maxLength: 64
+          type: string
+          description: Customer account name in the provider's system. Used for some types of withdrawals.
+        bank:
+          maxLength: 64
+          type: string
+          description: Customer bank. Used for some types of withdrawals.
+        bankBranch:
+          maxLength: 64
+          type: string
+          description: Customer bank branch. Used for some types of withdrawals.
+        documentType:
+          $ref: '#/components/schemas/DocumentType'
+        documentNumber:
+          maxLength: 64
+          type: string
+          description: An identifier for the customer assigned by a government authority
+        routingGroup:
+          maxLength: 64
+          type: string
+          description: Identify the customer as belonging to a specific group that is used for routing
+          example: VIP
+        kycStatus:
+          type: boolean
+          description: Indicates whether the customer has passed KYC verification
+          example: true
+        paymentInstrumentKycStatus:
+          type: boolean
+          description: Indicates whether the payment instrument (usually the card number) has passed KYC verification
+          example: true
+        dateOfFirstDeposit:
+          type: string
+          format: ISO 8601 (YYYY-MM-DD)
+          description: Date of the first deposit from the customer
+          example: '2021-01-01'
+        depositsAmount:
+          type: integer
+          description: How much the customer has deposited, in base currency
+          example: 5000
+        withdrawalsAmount:
+          type: integer
+          description: How much the customer has withdrawn, in base currency
+          example: 1000
+        depositsCnt:
+          type: integer
+          description: How many times the customer made a deposit
+          example: 5000
+        withdrawalsCnt:
+          type: integer
+          description: How many times the customer made a withdrawal
+          example: 1000
+    SubscriptionRequest:
+      required:
+        - frequency
+      type: object
+      properties:
+        description:
+          maxLength: 512
+          type: string
+          description: Description for subsequent recurring payments
+          example: Subscription to service
+        amount:
+          type: number
+          description: The amount to be used for subsequent payments. If not specified, the amount of the original payment is used.
+          example: 99.99
+        startTime:
+          type: string
+          format: ISO 8601 (YYYY-MM-DD'T'HH24:MI:SS)
+          description: Date and time of the 1st cycle. if not specified, then calculated as (initialDeposit.createTime + frequency*frequencyUnit).
+          example: '2030-12-25T10:11:12'
+        frequency:
+          type: integer
+          minimum: 1
+          description: The number of intervals after which a subscriber is billed. For example, if the frequencyUnit is DAY with an frequency of 2, the subscription is billed once every two days.
+          example: 2
+        frequencyUnit:
+          type: string
+          description: The interval at which the subscription is billed. Use 'MINUTE' for testing purposes only.
+          example: DAY
+          enum:
+            - MINUTE
+            - DAY
+            - WEEK
+            - MONTH
+        numberOfCycles:
+          type: integer
+          minimum: 1
+          description: Required number of subsequent recurring payments. Unlimited if value is not specified.
+          example: 12
+        retryStrategy:
+          $ref: '#/components/schemas/SubscriptionRetryStrategy'
+      description: Subscription to bill customers at regular intervals. Used only with 'startRecurring=true'.
+    SubscriptionPatchRequest:
+      type: object
+      properties:
+        state:
+          type: string
+          description: New subscription state
+          example: CANCELLED
+          enum:
+            - CANCELLED
+    SubscriptionResponse:
+      type: object
+      properties:
+        timestamp:
+          type: string
+          format: ISO 8601
+          example: 2020-10-07T13:36:32.595+00:00
+        status:
+          type: integer
+          description: HTTP status code
+          example: 200
+        result:
+          $ref: '#/components/schemas/Subscription'
+    Subscription:
+      type: object
+      properties:
+        id:
+          maxLength: 32
+          type: string
+          description: Subscription Id
+        customerReferenceId:
+          maxLength: 128
+          type: string
+          description: Id of the customer from initial payment
+        description:
+          maxLength: 512
+          type: string
+          description: Description for subsequent recurring payments
+          example: Subscription to service
+        amount:
+          type: number
+          description: The amount to be used for subsequent payments
+        currency:
+          type: string
+          description: Payment currency
+          format: ISO 4217 code for FIAT currencies or cryptocurrency symbol
+        createTime:
+          type: string
+          format: ISO 8601 (YYYY-MM-DD'T'HH24:MI:SS)
+          description: Date and time the subscription was created
+          example: '2030-12-25T10:11:12'
+        startTime:
+          type: string
+          format: ISO 8601 (YYYY-MM-DD'T'HH24:MI:SS)
+          description: Date and time of the 1st cycle
+          example: '2030-12-25T10:11:12'
+        frequency:
+          type: integer
+          minimum: 1
+          description: The number of intervals after which a subscriber is billed. For example, if the frequencyUnit is DAY with an frequency of 2, the subscription is billed once every two days.
+          example: 2
+        frequencyUnit:
+          type: string
+          description: The interval at which the subscription is billed. Use 'MINUTE' for testing purposes only.
+          example: DAY
+          enum:
+            - MINUTE
+            - DAY
+            - WEEK
+            - MONTH
+        requestedNumberOfCycles:
+          type: integer
+          minimum: 1
+          description: Required number of subsequent recurring payments. Unlimited if value is not specified.
+          example: 12
+        state:
+          type: string
+          description: Subscription state
+          example: ACTIVE
+          enum:
+            - ACTIVE
+            - CANCELLED
+            - COMPLETED
+        recurringToken:
+          type: string
+          description: Token that is used to continue the recurring chain
+        retryStrategy:
+          $ref: '#/components/schemas/SubscriptionRetryStrategy'
+        cycles:
+          type: array
+          description: List of payments automatically generated for this subscription
+          items:
+            $ref: '#/components/schemas/SubscriptionCycle'
+    SubscriptionCycle:
+      type: object
+      properties:
+        sequence:
+          type: integer
+          description: Sequence number of the cycle
+        type:
+          type: string
+          description: Cycle type
+          example: REGULAR
+          enum:
+            - REGULAR
+            - RETRY
+        startTime:
+          type: string
+          format: ISO 8601 (YYYY-MM-DD'T'HH24:MI:SS)
+          description: Date and time when this cycle was supposed to be created according to the schedule
+          example: '2030-12-25T10:11:12'
+        paymentId:
+          type: string
+          description: Payment Id
+        paymentState:
+          $ref: '#/components/schemas/PaymentState'
+        amount:
+          type: number
+          description: Payment amount
+    SubscriptionRetryStrategy:
+      required:
+        - frequency
+        - numberOfCycles
+      type: object
+      properties:
+        frequency:
+          type: integer
+          minimum: 1
+          description: The number of intervals after which the system will retry the payment after an unsuccessful attempt
+          example: 2
+        frequencyUnit:
+          type: string
+          description: The interval at which the subscription is retried. Use 'MINUTE' for testing purposes only.
+          example: DAY
+          enum:
+            - MINUTE
+            - DAY
+            - WEEK
+            - MONTH
+        numberOfCycles:
+          type: integer
+          minimum: 1
+          description: Required number of retries
+          example: 12
+        amountAdjustments:
+          type: array
+          description: If specified, the nth element contains the percentage of the initial amount that will be charged for the nth retry
+          items:
+            type: integer
+            minimum: 1
+      description: Retry strategy for subscription. If not specified, the subscription is canceled after the first failed payment attempt.
+    Result:
+      properties:
+        id:
+          maxLength: 32
+          type: string
+          description: Payment Id
+          example: 91d27876e87f4b22b3ecd53924bf973d
+        referenceId:
+          maxLength: 256
+          type: string
+          description: referenceId from payment request
+          example: payment-123
+        created:
+          type: string
+          format: ISO 8601 (YYYY-MM-DD'T'HH24:MI:SS)
+          description: Date and time when this payment was created, in UTC time zone
+          example: '2030-12-25T10:11:12'
+        paymentType:
+          $ref: '#/components/schemas/PaymentType'
+        state:
+          $ref: '#/components/schemas/PaymentState'
+        description:
+          maxLength: 512
+          type: string
+          description: Description of the transaction
+          example: Deposit via TEST shop
+        parentPaymentId:
+          maxLength: 32
+          type: string
+          description: Initial transaction Id from payment request
+          example: 91d27876e87f4b22b3ecd53924bf973d
+        paymentMethod:
+          $ref: '#/components/schemas/PaymentMethod'
+        paymentMethodDetails:
+          $ref: '#/components/schemas/PaymentMethodDetails'
+        amount:
+          multipleOf: 1E-18
+          maximum: 1000000000
+          exclusiveMaximum: false
+          minimum: 0.00001
+          exclusiveMinimum: false
+          type: number
+          description: Amount sent to the payment provider
+          example: 11.12
+        currency:
+          type: string
+          description: Currency sent to the payment provider
+          format: ISO 4217 code for FIAT currencies or cryptocurrency symbol
+          example: EUR
+        customerAmount:
+          type: number
+          description: Amount from payment request. Filled only if the request currency differs from the currency sent to the payment provider.
+          example: 15
+        customerCurrency:
+          type: string
+          description: Currency from payment request. Filled only if it differs from the currency sent to the payment provider.
+          format: ISO 4217 code for FIAT currencies or cryptocurrency symbol
+          example: USD
+        redirectUrl:
+          maxLength: 256
+          type: string
+          description: URL to redirect the customer
+          example: http://start/payment/6ccaa03cb2c242a68ce332f38fedfad7
+        errorCode:
+          type: string
+          description: Check 'Error Codes' section for details
+          example: '4.01'
+        errorMessage:
+          type: string
+          description: Check 'Error Codes' section for details
+          example: 'Insufficient Funds'
+        externalResultCode:
+          type: string
+          description: Result code from external provider
+          example: '03'
+        customer:
+          $ref: '#/components/schemas/Customer'
+        billingAddress:
+          $ref: '#/components/schemas/BillingAddress'
+        startRecurring:
+          type: boolean
+          description: Indicates whether this payment has started a recurring chain
+        preAuth:
+          type: boolean
+          description: Indicates whether this is a Pre-Authorization request (for 2-phase deposit)
+        recurringToken:
+          type: string
+          description: Token that can be used to continue the recurring chain
+        terminalName:
+          type: string
+          description: The name of the provider that was used to process this payment
+        externalFeeAmount:
+          type: number
+          description: Provider fee. Filled only if supported by the provider.
+          example: 15
+        externalFeeCurrency:
+          type: string
+          description: Provider fee currency. Filled only if supported by the provider.
+          format: ISO 4217 code for FIAT currencies or cryptocurrency symbol
+          example: USD
+    PaymentOperation:
+      properties:
+        id:
+          type: integer
+          description: Operation Id
+        operation:
+          $ref: '#/components/schemas/Operation'
+        started:
+          type: string
+          format: ISO 8601
+          description: Operation start time
+          example: 2020-10-07T13:36:32.595+00:00
+        completed:
+          type: string
+          format: ISO 8601
+          description: Operation end time
+          example: 2020-10-07T13:36:32.595+00:00
+        paymentState:
+          $ref: '#/components/schemas/PaymentState'
+        outgoingMessages:
+          type: string
+          description: List of messages sent to external APIs during operation processing
+        incomingMessages:
+          type: string
+          description: List of messages received from external APIs during operation processing
+    PaymentRequest:
+      required:
+        - currency
+        - paymentType
+      type: object
+      properties:
+        referenceId:
+          maxLength: 256
+          type: string
+          description: Reference assigned by Merchant. Will not go outside the system. Will be sent unchanged in the PaymentResponse.
+          example: payment_id=123;custom_ref=456
+        paymentType:
+          $ref: '#/components/schemas/PaymentType'
+        paymentMethod:
+          $ref: '#/components/schemas/PaymentMethod'
+        amount:
+          multipleOf: 1E-18
+          maximum: 1000000000
+          exclusiveMaximum: false
+          minimum: 0.00001
+          exclusiveMinimum: false
+          type: number
+          description: Payment amount
+          example: 11.12
+        currency:
+          type: string
+          description: Payment currency
+          format: ISO 4217 code for FIAT currencies or cryptocurrency symbol
+          example: EUR
+        parentPaymentId:
+          maxLength: 32
+          type: string
+          description: Id of initial deposit for refunds, Id of initial recurring payment for subsequent payments
+          example: 91d27876e87f4b22b3ecd53924bf973d
+        description:
+          maxLength: 512
+          type: string
+          description: Description of the transaction shown to the Customer. Can be sent outside the system.
+          example: Deposit 123 via TEST shop
+        card:
+          $ref: '#/components/schemas/Card'
+        customer:
+          $ref: '#/components/schemas/Customer'
+        billingAddress:
+          $ref: '#/components/schemas/BillingAddress'
+        returnUrl:
+          maxLength: 256
+          type: string
+          description: URL to redirect Customer after processing
+          example: https://mywebsite.com/{id}/{referenceId}/{state}/{type}
+        webhookUrl:
+          type: string
+          description: Url to receive payment status notifications
+          example: https://mywebsite.com/webhooks
+        startRecurring:
+          type: boolean
+          description: Send 'true' if you want this payment to initiate recurring chain. Default is 'false'.
+        preAuth:
+          type: boolean
+          description: Send 'true' if you want to request a Pre-Authorization charge (initiate a 2-phase deposit).
+        recurringToken:
+          type: string
+          description: To continue recurring chain, send a token from a previously initiated recurring payment.
+        subscription:
+          $ref: '#/components/schemas/SubscriptionRequest'
+        additionalParameters:
+          type: object
+          description: Additional parameters required by some payment providers. Contact support for more information.
+          additionalProperties:
+            type: string
+          example:
+            bankCode: ABHY0065032
+            countryOfBirth: CY
+    CaptureRequest:
+      type: object
+      properties:
+        amount:
+          multipleOf: 1E-18
+          maximum: 1000000000
+          exclusiveMaximum: false
+          minimum: 0.00001
+          exclusiveMinimum: false
+          type: number
+          description: Capture amount. Should not exceed the authorized payment amount. If not specified, the authorized payment amount will be captured fully.
+          example: 11.12
+    PaymentListResponse:
+      type: object
+      properties:
+        timestamp:
+          type: string
+          format: ISO 8601
+          example: 2020-10-07T13:36:32.595+00:00
+        status:
+          type: integer
+          description: HTTP status code
+          example: 200
+        hasMore:
+          type: boolean
+          description: Indicates if there are more pages to return
+        result:
+          type: array
+          items:
+            $ref: '#/components/schemas/Result'
+    PaymentResponse:
+      type: object
+      properties:
+        timestamp:
+          type: string
+          format: ISO 8601
+          example: 2020-10-07T13:36:32.595+00:00
+        status:
+          type: integer
+          description: HTTP status code
+          example: 200
+        result:
+          $ref: '#/components/schemas/Result'
+    OperationListResponse:
+      type: object
+      properties:
+        timestamp:
+          type: string
+          format: ISO 8601
+          example: 2020-10-07T13:36:32.595+00:00
+        status:
+          type: integer
+          description: HTTP status code
+          example: 200
+        result:
+          type: array
+          items:
+            $ref: '#/components/schemas/PaymentOperation'
+    Balance:
+      required:
+        - currency
+        - amount
+      type: object
+      properties:
+        amount:
+          multipleOf: 1E-18
+          maximum: 1000000000
+          exclusiveMaximum: false
+          minimum: 0.00001
+          exclusiveMinimum: false
+          type: number
+          description: Balance amount
+          example: 11.12
+        currency:
+          type: string
+          description: Balance currency
+          format: ISO 4217 code for FIAT currencies or cryptocurrency symbol
+          example: EUR
+    BalanceListResponse:
+      type: object
+      properties:
+        timestamp:
+          type: string
+          format: ISO 8601
+          example: 2020-10-07T13:36:32.595+00:00
+        status:
+          type: integer
+          description: HTTP status code
+          example: 200
+        result:
+          type: array
+          items:
+            $ref: '#/components/schemas/Balance'
+    UnauthorizedError:
+      required:
+        - status
+        - error
+        - message
+        - timestamp
+        - path
+      type: object
+      properties:
+        status:
+          type: integer
+          example: 401
+        error:
+          type: string
+          example: Unauthorized
+        message:
+          type: string
+          example: Invalid token
+        timestamp:
+          type: string
+          format: ISO 8601
+          example: 2020-10-07T13:32:19.444+00:00
+        path:
+          type: string
+          example: /api/v1/payments
+      example:
+        status: 401
+        error: Unauthorized
+        message: Invalid token
+        timestamp: 2020-10-07T13:32:19.444+00:00
+        path: /api/v1/resource-name
+    NotFoundError:
+      required:
+        - status
+        - error
+        - message
+        - timestamp
+        - path
+      type: object
+      properties:
+        status:
+          type: integer
+          example: 404
+        error:
+          type: string
+          example: Not Found
+        message:
+          type: string
+          example: 404 NOT_FOUND
+        timestamp:
+          type: string
+          format: ISO 8601
+          example: 2020-10-07T13:32:19.444+00:00
+        path:
+          type: string
+          example: /api/v1/payments
+      example:
+        status: 404
+        error: Not Found
+        message: 404 NOT_FOUND
+        timestamp: 2020-10-07T13:32:19.444+00:00
+        path: /api/v1/resource-name
+    PaymentType:
+      type: string
+      description: Payment Type
+      example: DEPOSIT
+      enum:
+        - DEPOSIT
+        - WITHDRAWAL
+        - REFUND
+    PaymentMethod:
+      type: string
+      description: Payment Method
+      example: BASIC_CARD
+      enum:
+        - BASIC_CARD
+        - CRYPTO
+        - FLEXEPIN
+        - MACROPAY
+        - SKRILL
+        - PAYRETAILERS
+        - LOCALPAYMENT
+        - MONNET
+        - PAYPAL
+        - NETELLER
+        - TRUSTPAYMENTS
+        - PAYMAXIS
+        - GATE8TRANSACT
+        - TINK
+        - B2BINPAY
+        - CLICK
+        - MONETIX
+        - PERFECTMONEY
+        - VOLT
+        - KESSPAY
+        - BILLLINE
+        - NGENIUS
+        - ASTROPAY
+        - ALYCEPAY
+        - PIX
+        - BOLETO
+        - UPI
+        - PAYTM
+        - NETBANKING
+        - FINRAX
+        - SPOYNT
+        - XINPAY
+        - OMNIMATRIX
+        - DPOPAY
+        - EXTERNAL_HPP
+        - XANPAY
+        - INRPAY
+        - ARI10
+        - SOFORT
+        - GIROPAY
+        - PAYSAFECARD
+        - PAYSAFECASH
+        - OPEN_BANKING
+        - KLARNA
+        - SPEI
+        - PAYCASH
+        - RAPIPAGO
+        - PAGOFACIL
+        - RAPIDTRANSFER
+        - MOBILE_MONEY
+        - INTERAC
+        - INTERAC_ETO
+        - INTERAC_RTO
+        - INTERAC_ACH
+        - PICPAY
+        - MOLLIE
+        - TED
+        - ZIPAY
+        - PSE
+        - EFECTY
+        - BANKTRANSFER
+        - PEC
+        - OXXO
+        - WEBPAY
+        - PAGOEFECTIVO
+        - MIFINITY
+        - PAYPORT
+        - JETONCASH
+        - JETONWALLET
+        - NEOSURF
+        - NODA
+        - NODA_REVOLUT
+        - ALFAKIT
+        - PAYFUN
+        - EMANAT
+        - M10
+        - RUBPAY
+        - MONERCHY
+        - MUCHBETTER
+        - YAPILY
+        - INAI
+        - IMPS
+        - RTGS
+        - PAYID
+        - ZOTAPAY
+        - SBP
+        - SBP_CROSS_BORDER
+        - P2P_CARD
+        - P2P_IBAN
+        - P2P_SBP
+        - P2P_MOBILE
+        - P2P_M10
+        - P2P_EMANAT
+        - P2P_KAPITAL
+        - P2P_ACCESS
+        - PUSH
+        - GATEIQ
+        - VIETTEL
+        - ZALO
+        - QR
+        - CUP
+        - CODI
+        - PAY2PLAY
+        - BKASH
+        - NAGAD
+        - ROCKET
+        - VIRTUAL_ACCOUNT
+        - MULTIBANCO
+        - BLIK
+        - MBWAY
+        - P24
+        - MISTERCASH
+        - MACH
+        - KHIPU
+        - NEFT
+        - STICPAY
+        - SBERPAY
+        - MOBILE_COMMERCE
+        - BINANCE_PAY
+        - MPAY
+        - CHEK
+        - KLAP_EFECTIVO
+        - KLAP_TRANSFERENCIA
+        - PAGO46
+        - HITES
+        - SERVIFACIL
+        - OPENPAYD
+        - FAWRY
+        - EPS
+        - IDEAL
+        - TRUSTLY
+        - USSD
+        - MPESA
+        - ENAIRA
+        - ONEVOUCHER
+        - BANCONTACT
+        - SWISH
+        - EFT
+        - GCASH
+        - PAYMAYA
+        - PAGO_MOVIL
+        - PAGO_MOVIL_INST
+        - BIOPAGO
+        - CASH
+        - VOUCHERRY
+        - SOFT2PAY
+        - APPLEPAY
+        - GOOGLEPAY
+        - BRITE
+        - VOUCHSTAR
+        - REVOLUT
+        - ONLINE_BANKING
+        - PROMPTPAY
+        - TRUEMONEY
+        - MOMOPAY_VN
+        - MOMOPAY_RW
+        - VNPAY_QR
+        - N26
+        - WISE
+        - PAYDO_WALLET
+        - PAPARA
+        - PAYPAY
+        - PARAZULA
+        - PAYFIX
+        - PHONEPE
+        - CIP
+        - BASIC_CARD_HPP
+        - WAVE
+        - PIASTRIX
+        - DANA
+        - SHOPEEPAY
+        - QRIS
+        - OVO
+        - ALFAMART
+        - GOPAY
+        - CASHLIB
+        - YAPE
+        - PAYNOW
+        - PAYOUT_SEPA_BATCH
+        - PAYOUT_NONSEPA_REQUEST
+    PaymentState:
+      type: string
+      description: Payment State
+      example: PENDING
+      enum:
+        - CHECKOUT
+        - PENDING
+        - AUTHORIZED
+        - CANCELLED
+        - DECLINED
+        - COMPLETED
+    Operation:
+      type: string
+      description: Operation performed during payment processing
+      example: CREATE_PAYMENT
+      enum:
+        - CREATE_PAYMENT
+        - CHECKOUT
+        - CANCEL
+        - CONFIRMATION
+        - CASCADING
+        - REDIRECT
+        - CONTINUE
+        - CONTINUE_ANTI_FRAUD
+        - DETECT_FRAUD
+        - DEPOSIT
+        - WITHDRAWAL
+        - REFUND
+        - CHARGEBACK
+        - CAPTURE
+        - VOID
+        - CHECK_STATE
+        - HANDLE_WEBHOOK
+        - MANUAL_UPDATE
+    DocumentType:
+      type: string
+      description: Document Type
+      example: BR_CPF
+      enum:
+        - AR_CDI
+        - AR_CUIL
+        - AR_CUIT
+        - AR_DNI
+        - AR_OTRO
+        - BR_CNPJ
+        - BR_CPF
+        - BR_PP
+        - CL_CI
+        - CL_OTRO
+        - CL_PP
+        - CL_RUN
+        - CL_RUT
+        - CO_CC
+        - CO_CE
+        - CO_DL
+        - CO_DNI
+        - CO_NE
+        - CO_NIT
+        - CO_PP
+        - CO_SS
+        - CO_TI
+        - CO_TIN
+        - CR_CDI
+        - EC_CC
+        - EC_DNI
+        - EC_PP
+        - EC_RUC
+        - GT_CUI
+        - GT_DPI
+        - GT_NIT
+        - IN_DL
+        - IN_ID
+        - IN_UID
+        - MX_CURP
+        - MX_IFE
+        - MX_PP
+        - MX_RFC
+        - PA_CIP
+        - PE_CE
+        - PE_CPP
+        - PE_DNI
+        - PE_OTRO
+        - PE_PP
+        - PE_RUC
+        - UY_CI
+        - UY_RUT
+        - VN_TIN
+    Error:
+      type: object
+      example:
+        timestamp: '2020-10-07T13:31:17.110+00:00'
+        status: 400
+        error: Bad Request
+        message: 'Validation failed for object=''paymentRequest''. Error count: 1'
+        errors:
+          - codes:
+              - NotNull.paymentRequest.currency
+              - NotNull.currency
+              - NotNull.java.util.Currency
+              - NotNull
+            arguments:
+              - codes:
+                  - paymentRequest.currency
+                  - currency
+                defaultMessage: currency
+            defaultMessage: must not be null
+            objectName: paymentRequest
+            field: currency
+            bindingFailure: false
+        path: /api/v1/payments
+      properties:
+        timestamp:
+          type: string
+        status:
+          type: number
+        error:
+          type: string
+        message:
+          type: string
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              codes:
+                type: array
+                items:
+                  type: string
+              arguments:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    codes:
+                      type: array
+                      items:
+                        type: string
+                    defaultMessage:
+                      type: string
+              defaultMessage:
+                type: string
+              objectName:
+                type: string
+              field:
+                type: string
+              bindingFailure:
+                type: boolean
+        path:
+          type: string
+  securitySchemes:
+    bearerAuthentication:
+      type: http
+      description: The client sends HTTP requests with the Authorization header that contains the word Bearer followed by a space and the Shop Api Key.
+      scheme: bearer
